@@ -1,0 +1,1 @@
+https://v4gc7mhn1d.execute-api.us-east-1.amazonaws.com/inference

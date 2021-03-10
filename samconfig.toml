@@ -1,0 +1,11 @@
+version = 0.1
+[default]
+[default.deploy]
+[default.deploy.parameters]
+stack_name = "acertachallengeawslambda"
+s3_bucket = "aws-sam-cli-managed-default-samclisourcebucket-1wse53pdsk7jn"
+s3_prefix = "acertachallengeawslambda"
+region = "us-east-1"
+confirm_changeset = true
+capabilities = "CAPABILITY_IAM"
+image_repositories = ["acertaEndpoint=701600330786.dkr.ecr.us-east-1.amazonaws.com/acerta_challenge_aws_lambda"]
