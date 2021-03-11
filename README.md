@@ -212,7 +212,7 @@ Outputs:
 
 `Link: `('https://v4gc7mhn1d.execute-api.us-east-1.amazonaws.com/inference')
 
-Please find the below sample curl requst to invoke the api.
+Please find the below sample curl request to invoke the api.
 ```bash
 curl --header "Content-Type: application/json" \
   --request POST \
