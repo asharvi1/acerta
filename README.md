@@ -2,15 +2,20 @@
 
 by Arun Chandra Sharvirala
 
-Aiming for the bonus points, I went with the serverless architecture to solve this challenge. I chose AWS lambda for deploying my api. I will go through the process step-by-step and explain each of my files. The files are available at [GitHub](https://github.com/asharvi1/acerta).
+I went with the serverless architecture to solve this challenge and chose AWS lambda for deploying my api. I will go through the process step-by-step and explain each of my files. The files are available at [GitHub](https://github.com/asharvi1/acerta).
 
-## Project motive
-
-- Since model building is not important for this project, I will only be using machine learning models such as `Linear Regression`, `Support Vector Machine` and `Random Forest`. 
-- I was more familiar with AWS, so I will be chosing `AWS Lambda` for this project.
-- I will also be using `ECR` to save my docker image and be used for deploying the api.
-- I will be using `amazon/python3.8` as my base image. 
-- I will be using `AWS Serverless Application Model (AWS SAM) CLI` for this challenge.
+## Project Highlights
+- Multi-model API support. This model uses `Linear Regression`, `Support Vector Machine` and `Random Forest`. You can predict the house price with any of the models when you invoke the API.
+- Serverless architecture.
+  - `AWS Lambda`.
+  - `AWS ECR` to store the docker image.
+- Containerized project
+  - `Docker`
+- Python libraries
+  - `scikit learn`
+  - `joblib`
+  - `numpy`
+  - `pandas`
 
 ## Project Files
 
@@ -18,12 +23,11 @@ Aiming for the bonus points, I went with the serverless architecture to solve th
 - `train_models.py`
 - `app.py`
 - `Dockerfile`
-- `template.yml`
 
 I will go through the files one by one:
 
 ### requirements.txt
-
+These are the libraries I used for this project and `scikit-learn` for the machine learning models.
 ```text
 joblib==1.0.1
 numpy==1.20.1
@@ -31,11 +35,9 @@ scikit-learn==0.24.1
 pandas==1.2.3
 ```
 
-These are the libraries I used for this project
-
 ### train_models.py
 
-This file loads the boston housing dataset from the `scikit-learn` library, train the machine learning models and save them in pickle files using the `joblib` library.
+This file loads the boston housing dataset from the `scikit-learn` library, train the machine learning models and save them as pickle files using the `joblib` library.
 
 ```python
 # importing the boston housing dataset
@@ -170,43 +172,6 @@ RUN python3.8 train_models.py
 
 CMD ["app.lambda_handler"]
 ```
-
-### template.yml
-
-I do not have much experience with `yaml` but I changed a few attributes in the default template that will make the api work.
-```yaml
-AWSTemplateFormatVersion: '2010-09-09'
-Transform: AWS::Serverless-2016-10-31
-Description: >
-  python3.8
-
-  Sample SAM Template for acerta_lambda_challenge
-
-Resources:
-  acertaEndpoint:
-    Type: AWS::Serverless::Function
-    Properties:
-      PackageType: Image
-      MemorySize: 256
-      Timeout: 300
-      Events:
-        ApiEndpoint:
-          Type: HttpApi
-          Properties:
-            Path: /inference
-            Method: post
-            TimeoutInMillis: 29000
-    Metadata:
-      Dockerfile: Dockerfile
-      DockerContext: ./hello_world
-      DockerTag: python3.8-v1
-
-Outputs:
-  InferenceApi:
-    Description: "API Gateway endpoint URL for Prod stage for inference function"
-    Value: !Sub "https://${ServerlessHttpApi}.execute-api.${AWS::Region}.amazonaws.com/inference"
-```
-
 
 # API link
 
