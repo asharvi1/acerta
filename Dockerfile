@@ -10,5 +10,4 @@ RUN python3.8 -m pip install -r requirements.txt -t .
 # training the models
 RUN python3.8 train_models.py
 
-# Command can be overwritten by providing a different command in the template directly.
 CMD ["app.lambda_handler"]
