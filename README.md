@@ -1,113 +1,235 @@
-# acerta_challenge_aws_lambda
+# Acerta challenge 
 
-This project contains source code and supporting files for a serverless application that you can deploy with the SAM CLI. It includes the following files and folders.
+by Arun Chandra Sharvirala
 
-- hello_world - Code for the application's Lambda function and Project Dockerfile.
-- events - Invocation events that you can use to invoke the function.
-- tests - Unit tests for the application code. 
-- template.yaml - A template that defines the application's AWS resources.
+Aiming for the bonus points, I went with the serverless architecture to solve this challenge. I chose AWS lambda for deploying my api. I will go through the process step-by-step and explain each of my files. The files are available at [GitHub](https://github.com/asharvi1/acerta).
 
-The application uses several AWS resources, including Lambda functions and an API Gateway API. These resources are defined in the `template.yaml` file in this project. You can update the template to add AWS resources through the same deployment process that updates your application code.
+## Project motive
 
-## Deploy the sample application
+- Since model building is not important for this project, I will only be using machine learning models such as `Linear Regression`, `Support Vector Machine` and `Random Forest`. 
+- I was more familiar with AWS, so I will be chosing `AWS Lambda` for this project.
+- I will also be using `ECR` to save my docker image and be used for deploying the api.
+- I will be using `amazon/python3.8` as my base image. 
+- I will be using `AWS Serverless Application Model (AWS SAM) CLI` for this challenge.
 
-The Serverless Application Model Command Line Interface (SAM CLI) is an extension of the AWS CLI that adds functionality for building and testing Lambda applications. It uses Docker to run your functions in an Amazon Linux environment that matches Lambda. It can also emulate your application's build environment and API.
+## Project Files
 
-To use the SAM CLI, you need the following tools.
+- `requirements.txt`
+- `train_models.py`
+- `app.py`
+- `Dockerfile`
+- `template.yml`
 
-* SAM CLI - [Install the SAM CLI](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-sam-cli-install.html)
-* Docker - [Install Docker community edition](https://hub.docker.com/search/?type=edition&offering=community)
+I will go through the files one by one:
 
-You may need the following for local testing.
-* [Python 3 installed](https://www.python.org/downloads/)
+### requirements.txt
 
-To build and deploy your application for the first time, run the following in your shell:
-
-```bash
-sam build
-sam deploy --guided
+```text
+joblib==1.0.1
+numpy==1.20.1
+scikit-learn==0.24.1
+pandas==1.2.3
 ```
 
-The first command will build a docker image from a Dockerfile and then copy the source of your application inside the Docker image. The second command will package and deploy your application to AWS, with a series of prompts:
+These are the libraries I used for this project
 
-* **Stack Name**: The name of the stack to deploy to CloudFormation. This should be unique to your account and region, and a good starting point would be something matching your project name.
-* **AWS Region**: The AWS region you want to deploy your app to.
-* **Confirm changes before deploy**: If set to yes, any change sets will be shown to you before execution for manual review. If set to no, the AWS SAM CLI will automatically deploy application changes.
-* **Allow SAM CLI IAM role creation**: Many AWS SAM templates, including this example, create AWS IAM roles required for the AWS Lambda function(s) included to access AWS services. By default, these are scoped down to minimum required permissions. To deploy an AWS CloudFormation stack which creates or modified IAM roles, the `CAPABILITY_IAM` value for `capabilities` must be provided. If permission isn't provided through this prompt, to deploy this example you must explicitly pass `--capabilities CAPABILITY_IAM` to the `sam deploy` command.
-* **Save arguments to samconfig.toml**: If set to yes, your choices will be saved to a configuration file inside the project, so that in the future you can just re-run `sam deploy` without parameters to deploy changes to your application.
+### train_models.py
 
-You can find your API Gateway Endpoint URL in the output values displayed after deployment.
+This file loads the boston housing dataset from the `scikit-learn` library, train the machine learning models and save them in pickle files using the `joblib` library.
 
-## Use the SAM CLI to build and test locally
+```python
+# importing the boston housing dataset
+boston_df = datasets.load_boston()
 
-Build your application with the `sam build` command.
+x = boston_df['data']
+y = boston_df['target']
+``` 
 
-```bash
-acerta_challenge_aws_lambda$ sam build
+Training and saving the linear regression model as `lm.pkl`
+```python
+# Linear Model
+linear_model_filename = 'lm.pkl'
+lm = linear_model.LinearRegression()
+lm.fit(x, y)
+
+joblib.dump(lm, linear_model_filename)
 ```
 
-The SAM CLI builds a docker image from a Dockerfile and then installs dependencies defined in `hello_world/requirements.txt` inside the docker image. The processed template file is saved in the `.aws-sam/build` folder.
+Training and saving the support vector machine model as `svm.pkl`
+```python
+#Support Vector Machine
+svm_filename = 'svm.pkl'
+svm = svm.SVR()
+svm.fit(x, y)
 
-Test a single function by invoking it directly with a test event. An event is a JSON document that represents the input that the function receives from the event source. Test events are included in the `events` folder in this project.
-
-Run functions locally and invoke them with the `sam local invoke` command.
-
-```bash
-acerta_challenge_aws_lambda$ sam local invoke HelloWorldFunction --event events/event.json
+joblib.dump(svm, svm_filename)
 ```
 
-The SAM CLI can also emulate your application's API. Use the `sam local start-api` to run the API locally on port 3000.
+Training and saving the random forest model as `randomfores.pkl`
+```python
+# Random Forest
+random_forest_filename = 'randomforest.pkl'
+rf_m = RandomForestRegressor()
+rf_m.fit(x, y)
 
-```bash
-acerta_challenge_aws_lambda$ sam local start-api
-acerta_challenge_aws_lambda$ curl http://localhost:3000/
+joblib.dump(rf_m, random_forest_filename)
 ```
 
-The SAM CLI reads the application template to determine the API's routes and the functions that they invoke. The `Events` property on each function's definition includes the route and method for each path.
+### app.py
 
+This file loads the contents of the request, predicts the price and returns the price predicted for the house. There are 13 independant variables in the boston housing dataset, I will assume the mean values for any of the variables that are not mentioned in the request. Final output will show the predicted price and also the list of variables that the mean values are used to predict the price.
+
+```python
+def lambda_handler(event, context):
+    # get the data from the request
+    body = json.loads(event['body'])
+
+    # file names for all the models trained
+    models_file_name = {
+        'linear': 'lm.pkl', 
+        'svm': 'svm.pkl', 
+        'randomforest': 'randomforest.pkl'
+        }
+
+    mean_values = {
+        'crim': 3.6135,
+        'zn': 0,
+        'indus': 11.3,
+        'chas': 0,
+        'nox': 0.5546,
+        'rm': 6.28,
+        'age': 68,
+        'dis': 3.79,
+        'rad': 9.4,
+        'tax': 408,
+        'ptratio': 18.45,
+        'b': 356.67,
+        'lstat': 12.65
+    }
+
+    input_values = []
+    mean_values_used_vars = []
+
+    # If model name is not mentioned in the request, will chose linear model to predict
+    if 'model_name' in list(body.keys()):
+        model_name = body['model_name']
+    else:
+        model_name = 'linear'
+
+    # Checking for all variables in the request, if not will assume mean value for the not mentioned vars
+    for key in list(mean_values.keys()):
+        if key in list(body.keys()):
+            input_values.append(body[key])
+        else:
+            input_values.append(mean_values[key])
+            mean_values_used_vars.append(key)
+
+    x = np.array([input_values])
+    model = joblib.load(models[model_name])
+    predicted_price = model.predict(x)
+
+    if len(mean_values_used_vars) > 0:
+        return {
+            "statusCode": 200,
+            "body": json.dumps(
+                {
+                    "Mean Values are used for the following vars": mean_values_used_vars,
+                    "Predicted Price": predicted_price[0]
+                }
+            )
+        }
+    
+    else:
+        return {
+            "statusCode": 200,
+            "body": json.dumps(
+                {
+                    "Predicted price": predicted_price[0]
+                }
+            ),
+        }
+
+```
+
+### Dockerfile
+
+Loading the AWS python3.8 as the base image
+```Dockerfile
+FROM public.ecr.aws/lambda/python:3.8
+```
+Copying the files to containe
+```Dockerfile
+COPY app.py requirements.txt ./
+COPY train_models.py ./
+```
+Installing the dependencies from `requirements.txt` file and training the models by running `train_models.py` file. Finally, the command to run the lambda_handler function in `app.py` file.
+```Dockerfile
+RUN python3.8 -m pip install -r requirements.txt -t .
+
+RUN python3.8 train_models.py
+
+CMD ["app.lambda_handler"]
+```
+
+### template.yml
+
+I do not have much experience with `yaml` but I changed a few attributes in the default template that will make the api work.
 ```yaml
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  python3.8
+
+  Sample SAM Template for acerta_lambda_challenge
+
+Resources:
+  acertaEndpoint:
+    Type: AWS::Serverless::Function
+    Properties:
+      PackageType: Image
+      MemorySize: 256
+      Timeout: 300
       Events:
-        HelloWorld:
-          Type: Api
+        ApiEndpoint:
+          Type: HttpApi
           Properties:
-            Path: /hello
-            Method: get
+            Path: /inference
+            Method: post
+            TimeoutInMillis: 29000
+    Metadata:
+      Dockerfile: Dockerfile
+      DockerContext: ./hello_world
+      DockerTag: python3.8-v1
+
+Outputs:
+  InferenceApi:
+    Description: "API Gateway endpoint URL for Prod stage for inference function"
+    Value: !Sub "https://${ServerlessHttpApi}.execute-api.${AWS::Region}.amazonaws.com/inference"
 ```
 
-## Add a resource to your application
-The application template uses AWS Serverless Application Model (AWS SAM) to define application resources. AWS SAM is an extension of AWS CloudFormation with a simpler syntax for configuring common serverless application resources such as functions, triggers, and APIs. For resources not included in [the SAM specification](https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md), you can use standard [AWS CloudFormation](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-template-resource-type-ref.html) resource types.
 
-## Fetch, tail, and filter Lambda function logs
+# API link
 
-To simplify troubleshooting, SAM CLI has a command called `sam logs`. `sam logs` lets you fetch logs generated by your deployed Lambda function from the command line. In addition to printing the logs on the terminal, this command has several nifty features to help you quickly find the bug.
+`Link: `('https://v4gc7mhn1d.execute-api.us-east-1.amazonaws.com/inference')
 
-`NOTE`: This command works for all AWS Lambda functions; not just the ones you deploy using SAM.
-
+Please find the below sample curl requst to invoke the api.
 ```bash
-acerta_challenge_aws_lambda$ sam logs -n HelloWorldFunction --stack-name acerta_challenge_aws_lambda --tail
+curl --header "Content-Type: application/json" \
+  --request POST \
+  --data '{
+    "model_name": "svm",
+    "crim": 0.2731,
+    "zn": 0,
+    "indus": 2.18,
+    "chas": 0,
+    "nox": 0.458,
+    "rm": 6.998,
+    "age": 45,
+    "dis": 4.96,
+    "tax": 242,
+    "ptratio": 15.3,
+    "b": 394.63,
+    "lstat": 9.14 
+}' \
+  'https://v4gc7mhn1d.execute-api.us-east-1.amazonaws.com/inference'
 ```
-
-You can find more information and examples about filtering Lambda function logs in the [SAM CLI Documentation](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-sam-cli-logging.html).
-
-## Unit tests
-
-Tests are defined in the `tests` folder in this project. Use PIP to install the [pytest](https://docs.pytest.org/en/latest/) and run unit tests from your local machine.
-
-```bash
-acerta_challenge_aws_lambda$ pip install pytest pytest-mock --user
-acerta_challenge_aws_lambda$ python -m pytest tests/ -v
-```
-
-## Cleanup
-
-To delete the sample application that you created, use the AWS CLI. Assuming you used your project name for the stack name, you can run the following:
-
-```bash
-aws cloudformation delete-stack --stack-name acerta_challenge_aws_lambda
-```
-
-## Resources
-
-See the [AWS SAM developer guide](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/what-is-sam.html) for an introduction to SAM specification, the SAM CLI, and serverless application concepts.
-
-Next, you can use AWS Serverless Application Repository to deploy ready to use Apps that go beyond hello world samples and learn how authors developed their applications: [AWS Serverless Application Repository main page](https://aws.amazon.com/serverless/serverlessrepo/)
