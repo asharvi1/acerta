@@ -147,7 +147,7 @@ def lambda_handler(event, context):
             "body": json.dumps(
                 {
                     "Mean Values are used for the following vars": mean_values_used_vars,
-                    "Predicted Price": predicted_price[0]
+                    "Predicted Price": "$ "+str(int(np.round(predicted_price[0]))*1000)
                 }
             )
         }
@@ -157,7 +157,7 @@ def lambda_handler(event, context):
             "statusCode": 200,
             "body": json.dumps(
                 {
-                    "Predicted price": "$ "+int(np.round(predicted_price[0]))*1000
+                    "Predicted price": "$ "+str(int(np.round(predicted_price[0]))*1000)
                 }
             ),
         }
