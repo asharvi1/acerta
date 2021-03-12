@@ -186,7 +186,7 @@ CMD ["app.lambda_handler"]
 
 # API link
 
-`Link: `('https://v4gc7mhn1d.execute-api.us-east-1.amazonaws.com/inference')
+`Link: `('https://v4gc7mhn1d.execute-api.us-east-1.amazonaws.com/houseprice')
 
 Please find the below sample curl request to invoke the api.
 ```bash
