@@ -127,8 +127,19 @@ def lambda_handler(event, context):
             mean_values_used_vars.append(key)
 
     x = np.array([input_values])
-    model = joblib.load(models[model_name])
-    predicted_price = model.predict(x)
+    model = joblib.load(models_file_name[model_name])
+    try:
+        predicted_price = model.predict(x)
+    except:
+        return {
+            "statusCode": 200,
+            "body": json.dumps(
+                {
+                    "[ERROR] There was an error, please make sure your requested variable values are in float format",
+
+                }
+            )
+        }
 
     if len(mean_values_used_vars) > 0:
         return {
@@ -146,7 +157,7 @@ def lambda_handler(event, context):
             "statusCode": 200,
             "body": json.dumps(
                 {
-                    "Predicted price": predicted_price[0]
+                    "Predicted price": "$ "+int(np.round(predicted_price[0]))*1000
                 }
             ),
         }
@@ -196,5 +207,5 @@ curl --header "Content-Type: application/json" \
     "b": 394.63,
     "lstat": 9.14 
 }' \
-  'https://v4gc7mhn1d.execute-api.us-east-1.amazonaws.com/inference'
+  'https://v4gc7mhn1d.execute-api.us-east-1.amazonaws.com/houseprice'
 ```

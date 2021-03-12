@@ -68,8 +68,19 @@ def lambda_handler(event, context):
             mean_values_used_vars.append(key)
 
     x = np.array([input_values])
-    model = joblib.load(models[model_name])
-    predicted_price = model.predict(x)
+    model = joblib.load(models_file_name[model_name])
+    try:
+        predicted_price = model.predict(x)
+    except:
+        return {
+            "statusCode": 200,
+            "body": json.dumps(
+                {
+                    "[ERROR] There was an error, please make sure your requested variable values are in float format",
+
+                }
+            )
+        }
 
     if len(mean_values_used_vars) > 0:
         return {
@@ -77,7 +88,7 @@ def lambda_handler(event, context):
             "body": json.dumps(
                 {
                     "Mean Values are used for the following vars": mean_values_used_vars,
-                    "Predicted Price": predicted_price[0]
+                    "Predicted Price": "$ " + str(int(np.round(predicted_price[0]))*1000)
                 }
             )
         }
@@ -87,7 +98,7 @@ def lambda_handler(event, context):
             "statusCode": 200,
             "body": json.dumps(
                 {
-                    "Predicted price": predicted_price[0]
+                    "Predicted price": "$ " + str(int(np.round(predicted_price[0]))*1000)
                 }
             ),
         }
